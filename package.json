@@ -1,0 +1,9 @@
+{
+  "name": "viewfacebookhieuzd",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Facebook Fanpage Analytics - viewfacebookhieuzd.vercel.app",
+  "scripts": {
+    "start": "npx serve ."
+  }
+}

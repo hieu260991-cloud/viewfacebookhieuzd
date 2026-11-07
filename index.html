@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta name="theme-color" content="#0F172A" />
+  <title>Facebook Fanpage Analytics — Web App Thống Kê &amp; Kiểm Tra View Video Fanpage</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(180deg, #EFF6FF 0%, #F8FAFC 45%, #F1F5F9 100%);
+      color: #0F172A;
+      min-height: 100vh;
+    }
+    .app-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+    }
+    .table-header th {
+      background-color: #0F172A;
+      color: #FFFFFF;
+      font-weight: 600;
+      border-right: 1px solid #1E293B;
+    }
+    .table-row:nth-child(even) {
+      background-color: #F8FAFC;
+    }
+    .table-row:hover {
+      background-color: #EFF6FF;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #F1F5F9;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+  <!-- 1. TOP BAR CỐ ĐỊNH (Phong cách Web App hiện đại giống Vercel App) -->
+  <header class="sticky top-0 z-40 bg-[#0F172A] text-white shadow-md border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-[#1877F2] to-sky-400 flex items-center justify-center font-extrabold text-sm shadow">
+          f
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5">
+          <span class="text-xs sm:text-sm font-bold tracking-tight">Hệ Thống Kiểm Tra &amp; Phân Tích View Video Fanpage</span>
+          <span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-amber-500 text-white">Facebook Analytics</span>
+          <span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-emerald-500 text-white">v4.2 Web App</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="btnOpenGuideModal" class="text-xs bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 font-semibold px-3 py-1.5 rounded-full transition flex items-center gap-1">
+          <span>🚀 Hướng dẫn đưa Web lên Vercel</span>
+        </button>
+        <button id="btnOpenSettingsModal" class="text-xs bg-[#1877F2] hover:bg-blue-600 text-white font-semibold px-3.5 py-1.5 rounded-full shadow transition flex items-center gap-1">
+          <span>🔐 Cấu hình Token / Chế độ</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 2. MAIN WEB APP CONTENT -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-5 space-y-5">
+
+    <!-- Khối Hero Tiêu đề ngắn gọn & Trạng thái hệ thống -->
+    <section class="text-center space-y-2">
+      <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white border border-emerald-200 text-emerald-700 text-xs font-semibold shadow-sm">
+        <span>🌟 Web App Trực Tuyến: Chạy mọi thiết bị (PC, Điện thoại, Máy tính bảng) — Không cần cài đặt</span>
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-[#1E3A8A] tracking-tight">
+        Facebook Fanpage Video Analytics
+      </h1>
+      <p class="text-xs sm:text-sm text-slate-600 max-w-2xl mx-auto">
+        Nhập đường link 1 Fanpage Facebook bất kỳ để thống kê danh sách video, lượt xem (Views), lượt thích (Likes), bình luận (Comments), chia sẻ (Shares) và xuất báo cáo Excel (.xlsx)
+      </p>
+    </section>
+
+    <!-- Khối thông báo Phiên quét đã lưu trong bộ nhớ trình duyệt (Tự động khôi phục giống Web App mẫu) -->
+    <section id="savedSessionBanner" class="hidden bg-amber-50 border border-amber-300 rounded-2xl p-3.5 shadow-sm flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5 text-xs sm:text-sm text-amber-950 font-medium">
+        <span class="text-lg">⏳</span>
+        <div>
+          Bạn đang có dữ liệu Fanpage vừa kiểm tra gần nhất:
+          <b id="savedSessionName" class="text-[#1877F2] underline"></b>
+          (<span id="savedSessionCount">0</span> video đã lưu trên trình duyệt)
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btnRestoreSession" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg shadow-sm transition">
+          ▶ Mở lại ngay
+        </button>
+        <button id="btnClearSession" class="bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+          🗑️ Xóa bộ nhớ
+        </button>
+      </div>
+    </section>
+
+    <!-- 3. KHỐI NHẬP LINK 1 FANPAGE DUY NHẤT & NÚT KIỂM TRA -->
+    <section class="app-card p-4 sm:p-5 space-y-3.5">
+      <div class="flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
+        <div class="flex-1 relative">
+          <input id="inputFanpageUrl" type="text" value="https://www.facebook.com/VTV24News"
+            placeholder="Dán đường link 1 Fanpage Facebook cần kiểm tra (Ví dụ: https://www.facebook.com/tenfanpage)..."
+            class="w-full text-xs sm:text-sm border-2 border-slate-200 focus:border-[#1877F2] rounded-xl px-4 py-3 bg-slate-50/60 focus:bg-white text-slate-900 font-medium focus:outline-none transition" />
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="btnCheckFanpage" class="flex-1 sm:flex-none bg-gradient-to-r from-[#1877F2] to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-xs sm:text-sm font-bold px-6 py-3 rounded-xl shadow-md transition flex items-center justify-center gap-1.5">
+            <span>🚀 KIỂM TRA FANPAGE</span>
+          </button>
+          <button id="btnUpdateNewVideos" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold px-4 py-3 rounded-xl shadow-sm transition">
+            <span>🔄 Cập nhật mới</span>
+          </button>
+          <button id="btnPauseResume" disabled class="bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white text-xs sm:text-sm font-semibold px-3.5 py-3 rounded-xl transition">
+            <span>⏸ Tạm dừng</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Thanh tiến trình & Trạng thái kết nối -->
+      <div class="flex flex-col sm:flex-row sm:items-center gap-2.5 pt-1">
+        <div class="w-full sm:w-64 bg-slate-200 rounded-full h-4 overflow-hidden border border-slate-300 relative">
+          <div id="scanProgressBar" class="bg-gradient-to-r from-[#1877F2] to-sky-400 h-full transition-all duration-300" style="width: 100%;"></div>
+          <span id="scanProgressText" class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white drop-shadow">Sẵn sàng (100%)</span>
+        </div>
+        <div id="scanStatusMessage" class="text-xs text-slate-600 font-medium flex-1">
+          ✅ Đang thống kê dữ liệu của duy nhất Fanpage trong ô kiểm tra.
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. BẢNG TỔNG QUAN FANPAGE (Đúng 7 chỉ số phía trên bảng dữ liệu, KHÔNG có biểu đồ thừa) -->
+    <section class="app-card p-4 sm:p-5 space-y-3">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+        <h2 class="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
+          <span>📊 Bảng Tổng Quan Hiệu Suất Fanpage:</span>
+          <span id="currentPageLabel" class="text-[#1877F2]">fb.com/VTV24News</span>
+        </h2>
+        <span id="currentDataSourceBadge" class="text-[11px] px-2.5 py-0.5 rounded-full bg-blue-50 text-[#1877F2] font-semibold border border-blue-200">
+          Chế độ: Fanpage Công khai / Graph API
+        </span>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div class="bg-slate-50/80 border border-slate-200 border-t-4 border-t-[#1877F2] rounded-xl p-3">
+          <div class="text-[11px] font-semibold text-slate-500">Tổng số video tìm thấy</div>
+          <div id="kpiTotalVideos" class="text-lg sm:text-xl font-extrabold text-[#1877F2] mt-0.5">0</div>
+        </div>
+        <div class="bg-slate-50/80 border border-slate-200 border-t-4 border-t-sky-500 rounded-xl p-3">
+          <div class="text-[11px] font-semibold text-slate-500">Tổng lượt xem (Views)</div>
+          <div id="kpiTotalViews" class="text-lg sm:text-xl font-extrabold text-sky-600 mt-0.5">0</div>
+        </div>
+        <div class="bg-slate-50/80 border border-slate-200 border-t-4 border-t-emerald-500 rounded-xl p-3">
+          <div class="text-[11px] font-semibold text-slate-500">Tổng lượt thích (Likes)</div>
+          <div id="kpiTotalLikes" class="text-lg sm:text-xl font-extrabold text-emerald-600 mt-0.5">0</div>
+        </div>
+        <div class="bg-slate-50/80 border border-slate-200 border-t-4 border-t-amber-500 rounded-xl p-3">
+          <div class="text-[11px] font-semibold text-slate-500">Tổng bình luận (Comments)</div>
+          <div id="kpiTotalComments" class="text-lg sm:text-xl font-extrabold text-amber-600 mt-0.5">0</div>
+        </div>
+        <div class="bg-slate-50/80 border border-slate-200 border-t-4 border-t-violet-500 rounded-xl p-3">
+          <div class="text-[11px] font-semibold text-slate-500">Tổng chia sẻ (Shares)</div>
+          <div id="kpiTotalShares" class="text-lg sm:text-xl font-extrabold text-violet-600 mt-0.5">0</div>
+        </div>
+        <div class="bg-slate-50/80 border border-slate-200 border-t-4 border-t-rose-500 rounded-xl p-3">
+          <div class="text-[11px] font-semibold text-slate-500">Lượt xem TB / video</div>
+          <div id="kpiAvgViews" class="text-lg sm:text-xl font-extrabold text-rose-600 mt-0.5">0</div>
+        </div>
+      </div>
+
+      <!-- Chỉ số thứ 7: Video có lượt xem cao nhất -->
+      <div id="topVideoHighlight" class="bg-amber-50/90 border border-amber-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-amber-950 font-semibold flex flex-wrap items-center justify-between gap-2">
+        <span>🏆 Video có lượt xem cao nhất: Chưa có dữ liệu</span>
+      </div>
+    </section>
+
+    <!-- 5. KHU VỰC BẢNG THỐNG KÊ CHI TIẾT & BẢNG XẾP HẠNG (100% Full Width) -->
+    <section class="app-card overflow-hidden flex flex-col">
+
+      <!-- Thanh Chuyển Đổi Giữa Bảng Thống Kê & Bảng Xếp Hạng -->
+      <div class="bg-slate-100 px-4 pt-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center gap-1.5">
+          <button data-view="viewTable" class="view-tab-btn bg-[#1877F2] text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-t-xl transition">
+            📋 Bảng Thống Kê Chi Tiết Video
+          </button>
+          <button data-view="viewRanking" class="view-tab-btn bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs sm:text-sm font-bold px-4 py-2.5 rounded-t-xl transition">
+            🏆 Bảng Xếp Hạng Video &amp; Khung Giờ Đăng Hiệu Quả
+          </button>
+        </div>
+
+        <div class="pb-2 flex items-center gap-1.5">
+          <button id="btnAddManualVideo" class="text-xs bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold px-3 py-1.5 rounded-lg transition">
+            ➕ Nhập nhanh dữ liệu JSON / CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- ================================================================== -->
+      <!-- VIEW 1: BẢNG THỐNG KÊ CHI TIẾT (Đúng 8 cột chuẩn) -->
+      <!-- ================================================================== -->
+      <div id="viewTable" class="view-panel p-4 space-y-3.5">
+
+        <!-- Bộ lọc Tìm kiếm, Khoảng thời gian, Sắp xếp & Xuất File Excel (.xlsx) thật -->
+        <div class="flex flex-wrap items-center gap-2.5">
+          <div class="flex-1 min-w-[220px]">
+            <input id="inputSearchVideo" type="text" placeholder="🔍 Tìm kiếm theo tên hoặc nội dung mô tả video..."
+              class="w-full text-xs sm:text-sm border border-slate-300 rounded-xl px-3.5 py-2 focus:outline-none focus:border-[#1877F2]" />
+          </div>
+
+          <select id="selectPeriodFilter" class="text-xs sm:text-sm border border-slate-300 rounded-xl px-3 py-2 bg-white font-medium text-slate-700">
+            <option value="all">📅 Thời gian: Tất cả</option>
+            <option value="7">7 ngày gần nhất</option>
+            <option value="30">30 ngày gần nhất</option>
+            <option value="90">90 ngày gần nhất</option>
+            <option value="180">6 tháng gần nhất</option>
+          </select>
+
+          <select id="selectSortOrder" class="text-xs sm:text-sm border border-slate-300 rounded-xl px-3 py-2 bg-white font-medium text-slate-700">
+            <option value="views_desc">⬇️ Sắp xếp: Lượt xem (Cao → Thấp)</option>
+            <option value="date_desc">🕒 Sắp xếp: Ngày đăng mới nhất</option>
+            <option value="likes_desc">👍 Sắp xếp: Lượt thích (Cao → Thấp)</option>
+            <option value="comments_desc">💬 Sắp xếp: Bình luận (Cao → Thấp)</option>
+          </select>
+
+          <button id="btnExportXlsx" class="bg-[#107C41] hover:bg-[#0E6B37] text-white text-xs sm:text-sm font-bold px-4 py-2 rounded-xl shadow-sm transition flex items-center gap-1">
+            <span>📥 Xuất Excel (.xlsx)</span>
+          </button>
+          <button id="btnExportCsv" class="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-xl transition">
+            <span>📄 Xuất CSV</span>
+          </button>
+        </div>
+
+        <!-- Bảng thống kê: STT | Ngày đăng | Nội dung video | Views | Likes | Comments | Shares | Link video -->
+        <div class="border border-slate-200 rounded-xl overflow-x-auto custom-scroll">
+          <table class="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr class="table-header">
+                <th class="py-3 px-2.5 text-center w-14">STT</th>
+                <th class="py-3 px-3 text-center whitespace-nowrap w-40">Ngày đăng</th>
+                <th class="py-3 px-3 min-w-[260px]">Nội dung video</th>
+                <th class="py-3 px-3 text-right whitespace-nowrap w-32">Views</th>
+                <th class="py-3 px-3 text-right whitespace-nowrap w-28">Likes</th>
+                <th class="py-3 px-3 text-right whitespace-nowrap w-28">Comments</th>
+                <th class="py-3 px-3 text-right whitespace-nowrap w-28">Shares</th>
+                <th class="py-3 px-3 text-center whitespace-nowrap w-44">Link video</th>
+              </tr>
+            </thead>
+            <tbody id="mainTableBody" class="divide-y divide-slate-200"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ================================================================== -->
+      <!-- VIEW 2: BẢNG XẾP HẠNG VIDEO & KHUNG GIỜ ĐĂNG HIỆU QUẢ NHẤT -->
+      <!-- ================================================================== -->
+      <div id="viewRanking" class="view-panel hidden p-4 space-y-3.5">
+        <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-50 border border-slate-200 rounded-xl p-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <label for="selectRankCategory" class="text-xs sm:text-sm font-bold text-slate-700">Tiêu chí xếp hạng (trong Fanpage này):</label>
+            <select id="selectRankCategory" class="text-xs sm:text-sm border border-slate-300 rounded-xl px-3.5 py-1.5 bg-white font-bold text-[#1877F2]">
+              <option value="top10">🔥 Top 10 video nhiều view nhất</option>
+              <option value="top20">🏆 Top 20 video nhiều view nhất</option>
+              <option value="24h">⚡ Top video đăng trong 24 giờ gần nhất</option>
+              <option value="engagement">💎 Top video có tỷ lệ tương tác (%) cao nhất</option>
+              <option value="hours">⏰ Phân tích khung giờ đăng video có hiệu suất tốt nhất</option>
+            </select>
+          </div>
+          <span class="text-xs text-slate-500">Chỉ tính trên các video thuộc duy nhất Fanpage đang kiểm tra</span>
+        </div>
+
+        <div class="border border-slate-200 rounded-xl overflow-x-auto custom-scroll">
+          <table class="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead id="rankTableHead" class="table-header"></thead>
+            <tbody id="rankTableBody" class="divide-y divide-slate-200"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- 6. FOOTER -->
+  <footer class="bg-[#0F172A] text-slate-400 text-xs py-5 px-4 border-t border-slate-800 mt-8">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5">
+        <div class="w-6 h-6 rounded-full bg-[#1877F2] text-white flex items-center justify-center font-bold text-xs">f</div>
+        <span class="text-slate-200 font-semibold">Facebook Fanpage Analytics — Web Application</span>
+      </div>
+      <div class="text-center sm:text-right">
+        Hỗ trợ xuất báo cáo Excel (.xlsx) trực tiếp trên trình duyệt • Tự động lưu dữ liệu cục bộ (LocalStorage)
+      </div>
+    </div>
+  </footer>
+
+  <!-- ====================================================================== -->
+  <!-- MODAL 1: CẤU HÌNH META GRAPH API TOKEN & CHẾ ĐỘ THU THẬP -->
+  <!-- ====================================================================== -->
+  <div id="settingsModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+        <h3 class="text-sm sm:text-base font-bold text-slate-900">🔐 Cấu Hình Kết Nối Dữ Liệu Facebook</h3>
+        <button id="btnCloseSettingsModal" class="text-slate-400 hover:text-slate-700 font-bold">✕</button>
+      </div>
+
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-950 space-y-1.5 leading-relaxed">
+        <p><b>Chế độ 1 — Kết nối thực tế qua Meta Graph API (Trực tiếp trên Web):</b> Dán mã <code>Access Token</code> của bạn vào bên dưới. Web App sẽ gọi thẳng tới máy chủ <code>graph.facebook.com</code> để lấy danh sách video thật và số lượt xem của Fanpage.</p>
+        <p><b>Chế độ 2 — Chế độ Serverless API (Khi đưa lên Vercel):</b> Tự động gọi qua endpoint <code>/api/scan</code> trên project Vercel của bạn.</p>
+      </div>
+
+      <div class="space-y-3 text-xs sm:text-sm">
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Meta Graph API Access Token:</label>
+          <input id="inputApiToken" type="password" placeholder="Dán Page Access Token hoặc User Token (EAAG...)..."
+            class="w-full border border-slate-300 rounded-xl px-3.5 py-2 focus:outline-none focus:border-[#1877F2]" />
+        </div>
+        <div>
+          <label class="font-bold text-slate-700 block mb-1">Số lượng video tối đa mỗi lần quét:</label>
+          <select id="selectMaxVideos" class="w-full border border-slate-300 rounded-xl px-3.5 py-2 bg-white">
+            <option value="25">25 video mới nhất</option>
+            <option value="50" selected>50 video mới nhất</option>
+            <option value="100">100 video mới nhất</option>
+            <option value="200">200 video mới nhất</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-3 border-t border-slate-200">
+        <button id="btnCancelSettings" class="px-4 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-600 hover:bg-slate-100">Đóng</button>
+        <button id="btnSaveSettings" class="px-5 py-2 rounded-xl bg-[#1877F2] hover:bg-blue-600 text-white text-xs font-bold shadow">Lưu Cấu Hình</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================== -->
+  <!-- MODAL 2: NHẬP NHANH DỮ LIỆU JSON / CSV HOẶC PASTE DỮ LIỆU -->
+  <!-- ====================================================================== -->
+  <div id="importModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+        <h3 class="text-sm sm:text-base font-bold text-slate-900">➕ Nhập Dữ Liệu Video Cho Fanpage Đang Chọn</h3>
+        <button id="btnCloseImportModal" class="text-slate-400 hover:text-slate-700 font-bold">✕</button>
+      </div>
+      <p class="text-xs text-slate-600">
+        Bạn có thể dán danh sách video dạng JSON hoặc từng dòng theo cú pháp: <code>Ngày đăng | Nội dung | Views | Likes | Comments | Shares | Link</code> để phân tích và xuất báo cáo Excel ngay trên Web App.
+      </p>
+      <textarea id="textareaImportData" rows="6" placeholder="2026-11-05 20:00 | Video giới thiệu sản phẩm mới | 125000 | 4200 | 530 | 210 | https://www.facebook.com/fanpage/videos/123"
+        class="w-full border border-slate-300 rounded-xl p-3 text-xs font-mono focus:outline-none focus:border-[#1877F2]"></textarea>
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-200">
+        <button id="btnCancelImport" class="px-4 py-2 rounded-xl border border-slate-300 text-xs font-semibold">Hủy</button>
+        <button id="btnConfirmImport" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">Nạp Vào Bảng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================== -->
+  <!-- MODAL 3: HƯỚNG DẪN ĐƯA WEB APP LÊN VERCEL MIỄN PHÍ -->
+  <!-- ====================================================================== -->
+  <div id="guideModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full p-5 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+        <h3 class="text-sm sm:text-base font-bold text-slate-900">🚀 Cách Đưa Web App Này Lên Vercel (Có Link Online Giống Hệt Mẫu)</h3>
+        <button id="btnCloseGuideModal" class="text-slate-400 hover:text-slate-700 font-bold">✕</button>
+      </div>
+      <div class="text-xs sm:text-sm text-slate-700 space-y-2.5 leading-relaxed">
+        <p>Để có một đường link trực tuyến dạng <code>https://ten-app-cua-ban.vercel.app</code> chạy trên mọi máy tính và điện thoại mà không cần cài đặt:</p>
+        <ol class="list-decimal list-inside space-y-1.5 font-medium">
+          <li>Tải gói <b><code>FacebookFanpageAnalytics_Vercel_WebApp.zip</code></b> mình đã đóng gói sẵn bên dưới về máy và giải nén.</li>
+          <li>Truy cập <a href="https://vercel.com/new" target="_blank" rel="noopener" class="text-[#1877F2] underline font-bold">vercel.com</a> (hoặc đẩy thư mục lên GitHub rồi bấm <b>Import Project</b> trên Vercel).</li>
+          <li>Bấm <b>Deploy</b> — sau 15 giây, Vercel sẽ cấp cho bạn đường link Web App chạy trực tiếp trên trình duyệt (kèm sẵn Backend Serverless Function tại <code>/api/scan.js</code> để tự động đọc dữ liệu Fanpage từ phía máy chủ mà không bị lỗi chặn CORS của trình duyệt).</li>
+        </ol>
+      </div>
+      <div class="flex justify-end pt-2 border-t border-slate-200">
+        <button id="btnOkGuide" class="px-5 py-2 rounded-xl bg-[#1877F2] text-white text-xs font-bold">Đã hiểu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Thông báo nổi -->
+  <div id="toastNotification" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs sm:text-sm font-semibold px-4 py-3 rounded-xl shadow-xl hidden z-50"></div>
+
+  <script>
+    // Kho dữ liệu theo từng Fanpage riêng biệt (Mỗi Fanpage được tách biệt 100% theo định danh URL)
+    const INITIAL_PAGE_DATABASE = {
+      "vtv24news": [
+        {
+          id: "101", date: "2026-11-05 08:00", timestamp: 1793865600, daysAgo: 0, hourRange: "08:00 - 08:59",
+          title: "Điểm tin sáng 05/11: Chuyển đổi số toàn diện trong doanh nghiệp vừa và nhỏ",
+          views: 248500, likes: 9420, comments: 1120, shares: 640,
+          url: "https://www.facebook.com/VTV24News/videos/101"
+        },
+        {
+          id: "102", date: "2026-11-04 20:00", timestamp: 1793822400, daysAgo: 1, hourRange: "20:00 - 20:59",
+          title: "Tiêu điểm Kinh tế: Toàn cảnh thị trường xuất khẩu công nghệ cuối năm 2026",
+          views: 512300, likes: 21500, comments: 3420, shares: 1890,
+          url: "https://www.facebook.com/VTV24News/videos/102"
+        },
+        {
+          id: "103", date: "2026-11-02 12:15", timestamp: 1793621700, daysAgo: 3, hourRange: "12:00 - 12:59",
+          title: "Phóng sự ngắn: Giao thông đô thị thông minh tại Hà Nội và TP.HCM",
+          views: 164200, likes: 5830, comments: 740, shares: null,
+          url: "https://www.facebook.com/VTV24News/videos/103"
+        },
+        {
+          id: "104", date: "2026-10-28 20:15", timestamp: 1793218500, daysAgo: 8, hourRange: "20:00 - 20:59",
+          title: "Cảnh báo các hình thức lừa đảo trực tuyến qua mạng xã hội mới nhất",
+          views: 845000, likes: 42100, comments: 6890, shares: 9420,
+          url: "https://www.facebook.com/VTV24News/videos/104"
+        },
+        {
+          id: "105", date: "2026-10-19 11:00", timestamp: 1792407600, daysAgo: 17, hourRange: "11:00 - 11:59",
+          title: "Bản tin Thời tiết & Môi trường: Dự báo không khí lạnh tăng cường miền Bắc",
+          views: null, likes: 2150, comments: 310, shares: null,
+          url: "https://www.facebook.com/VTV24News/videos/105"
+        }
+      ]
+    };
+
+    let pageDatabase = JSON.parse(JSON.stringify(INITIAL_PAGE_DATABASE));
+    let activePageKey = "vtv24news";
+    let apiToken = "";
+    let maxVideosLimit = 50;
+    let isPaused = false;
+
+    // Đọc dữ liệu đã lưu trong localStorage (nếu có)
+    function loadFromLocalStorage() {
+      try {
+        const savedDb = localStorage.getItem("fb_fanpage_analytics_db");
+        const savedToken = localStorage.getItem("fb_fanpage_analytics_token");
+        const lastPage = localStorage.getItem("fb_fanpage_analytics_last_page");
+        if (savedDb) {
+          const parsed = JSON.parse(savedDb);
+          if (parsed && typeof parsed === "object") {
+            pageDatabase = { ...pageDatabase, ...parsed };
+          }
+        }
+        if (savedToken) {
+          apiToken = savedToken;
+          document.getElementById("inputApiToken").value = savedToken;
+        }
+        if (lastPage && pageDatabase[lastPage] && pageDatabase[lastPage].length > 0) {
+          const banner = document.getElementById("savedSessionBanner");
+          document.getElementById("savedSessionName").textContent = "fb.com/" + lastPage;
+          document.getElementById("savedSessionCount").textContent = pageDatabase[lastPage].length;
+          banner.classList.remove("hidden");
+        }
+      } catch (e) {}
+    }
+
+    function saveToLocalStorage() {
+      try {
+        localStorage.setItem("fb_fanpage_analytics_db", JSON.stringify(pageDatabase));
+        localStorage.setItem("fb_fanpage_analytics_last_page", activePageKey);
+      } catch (e) {}
+    }
+
+    function extractPageKey(rawUrl) {
+      let u = (rawUrl || "").trim();
+      if (!u) return "";
+      if (u.includes("profile.php")) {
+        const m = u.match(/id=(\d+)/);
+        if (m) return m[1];
+      }
+      u = u.replace(/\/+(videos|reels|posts|about|photos).*$/i, "").replace(/\/+$/, "").split("?")[0];
+      const parts = u.split("/");
+      return (parts[parts.length - 1] || "").toLowerCase();
+    }
+
+    function getActiveVideos() {
+      if (!activePageKey) return [];
+      return pageDatabase[activePageKey] || [];
+    }
+
+    function formatCellMetric(val) {
+      if (val === null || val === undefined) {
+        return '<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-400 italic font-normal text-xs">Không có dữ liệu</span>';
+      }
+      return Number(val).toLocaleString("vi-VN");
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById("toastNotification");
+      t.textContent = msg;
+      t.classList.remove("hidden");
+      setTimeout(() => t.classList.add("hidden"), 3500);
+    }
+
+    function getFilteredAndSortedVideos() {
+      const videos = getActiveVideos();
+      const kw = document.getElementById("inputSearchVideo").value.trim().toLowerCase();
+      const period = document.getElementById("selectPeriodFilter").value;
+      const sortOrder = document.getElementById("selectSortOrder").value;
+
+      let filtered = videos.filter(v => {
+        if (kw && !v.title.toLowerCase().includes(kw) && !v.url.toLowerCase().includes(kw)) return false;
+        if (period !== "all" && v.daysAgo > Number(period)) return false;
+        return true;
+      });
+
+      filtered.sort((a, b) => {
+        if (sortOrder === "views_desc") return (b.views ?? -1) - (a.views ?? -1);
+        if (sortOrder === "likes_desc") return (b.likes ?? -1) - (a.likes ?? -1);
+        if (sortOrder === "comments_desc") return (b.comments ?? -1) - (a.comments ?? -1);
+        return (b.timestamp || 0) - (a.timestamp || 0);
+      });
+
+      return filtered;
+    }
+
+    function renderMainTableAndOverview() {
+      const list = getFilteredAndSortedVideos();
+      document.getElementById("currentPageLabel").textContent = activePageKey ? `fb.com/${activePageKey}` : "Chưa nhập link";
+
+      const validViews = list.filter(v => v.views !== null && v.views !== undefined);
+      const totViews = validViews.reduce((s, v) => s + v.views, 0);
+      const avgViews = validViews.length ? Math.round(totViews / validViews.length) : 0;
+      const totLikes = list.reduce((s, v) => s + (v.likes || 0), 0);
+      const totComments = list.reduce((s, v) => s + (v.comments || 0), 0);
+      const totShares = list.reduce((s, v) => s + (v.shares || 0), 0);
+
+      document.getElementById("kpiTotalVideos").textContent = list.length.toLocaleString("vi-VN");
+      document.getElementById("kpiTotalViews").textContent = totViews.toLocaleString("vi-VN");
+      document.getElementById("kpiTotalLikes").textContent = totLikes.toLocaleString("vi-VN");
+      document.getElementById("kpiTotalComments").textContent = totComments.toLocaleString("vi-VN");
+      document.getElementById("kpiTotalShares").textContent = totShares.toLocaleString("vi-VN");
+      document.getElementById("kpiAvgViews").textContent = avgViews.toLocaleString("vi-VN");
+
+      const topBox = document.getElementById("topVideoHighlight");
+      if (validViews.length > 0) {
+        const best = [...validViews].sort((a, b) => b.views - a.views)[0];
+        topBox.innerHTML = `
+          <span class="truncate">🏆 <b>Video có lượt xem cao nhất:</b> "${best.title}" — <span class="text-rose-600 font-extrabold">${best.views.toLocaleString("vi-VN")} Views</span></span>
+          <a href="${best.url}" target="_blank" rel="noopener" class="text-[#1877F2] hover:underline font-bold whitespace-nowrap">Mở xem trên Facebook ↗</a>
+        `;
+      } else {
+        topBox.innerHTML = `<span>🏆 Video có lượt xem cao nhất: Không có dữ liệu</span>`;
+      }
+
+      const tbody = document.getElementById("mainTableBody");
+      tbody.innerHTML = "";
+
+      if (list.length === 0) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td colspan="8" class="py-10 px-4 text-center text-slate-500">
+            <div class="font-bold text-slate-700 mb-1">Chưa có dữ liệu video cho Fanpage "${activePageKey || '...'}"</div>
+            <div class="text-xs max-w-xl mx-auto">
+              Hãy nhấn <b>🚀 KIỂM TRA FANPAGE</b> (hoặc cấu hình Meta Graph API Token trong mục <b>🔐 Cấu hình Token</b>, hoặc bấm <b>➕ Nhập nhanh dữ liệu</b>) để phân tích video của Fanpage này.
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+        return;
+      }
+
+      list.forEach((v, idx) => {
+        const tr = document.createElement("tr");
+        tr.className = "table-row transition";
+        tr.innerHTML = `
+          <td class="py-3 px-2.5 text-center font-bold text-slate-500">${idx + 1}</td>
+          <td class="py-3 px-3 text-center whitespace-nowrap font-medium text-slate-700">${v.date}</td>
+          <td class="py-3 px-3 font-semibold text-slate-900">${v.title}</td>
+          <td class="py-3 px-3 text-right font-extrabold text-slate-900 whitespace-nowrap">${formatCellMetric(v.views)}</td>
+          <td class="py-3 px-3 text-right font-medium text-slate-700 whitespace-nowrap">${formatCellMetric(v.likes)}</td>
+          <td class="py-3 px-3 text-right font-medium text-slate-700 whitespace-nowrap">${formatCellMetric(v.comments)}</td>
+          <td class="py-3 px-3 text-right font-medium text-slate-700 whitespace-nowrap">${formatCellMetric(v.shares)}</td>
+          <td class="py-3 px-3 text-center whitespace-nowrap">
+            <a href="${v.url}" target="_blank" rel="noopener"
+              class="inline-flex items-center gap-1 bg-blue-50 hover:bg-blue-100 text-[#1877F2] border border-blue-200 font-bold px-3 py-1.5 rounded-lg text-xs transition">
+              <span>Mở Facebook ↗</span>
+            </a>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderRankingView() {
+      const videos = getActiveVideos();
+      const cat = document.getElementById("selectRankCategory").value;
+      const thead = document.getElementById("rankTableHead");
+      const tbody = document.getElementById("rankTableBody");
+      tbody.innerHTML = "";
+
+      if (cat === "hours") {
+        thead.innerHTML = `
+          <tr>
+            <th class="py-3 px-3 text-center">Khung giờ đăng video</th>
+            <th class="py-3 px-3 text-center">Số lượng video đã đăng</th>
+            <th class="py-3 px-3 text-right">Tổng lượt xem (Views)</th>
+            <th class="py-3 px-3 text-right">Lượt xem TB / video</th>
+          </tr>
+        `;
+        const map = {};
+        videos.forEach(v => {
+          const hr = v.hourRange || "00:00 - 00:59";
+          if (!map[hr]) map[hr] = { count: 0, sum: 0, valid: 0 };
+          map[hr].count += 1;
+          if (v.views !== null && v.views !== undefined) {
+            map[hr].sum += v.views;
+            map[hr].valid += 1;
+          }
+        });
+        const rows = Object.entries(map).map(([hr, st]) => ({
+          hr,
+          count: st.count,
+          sum: st.valid ? st.sum : null,
+          avg: st.valid ? Math.round(st.sum / st.valid) : null
+        })).sort((a, b) => (b.avg ?? -1) - (a.avg ?? -1));
+
+        rows.forEach((r, i) => {
+          const tr = document.createElement("tr");
+          tr.className = i === 0 ? "bg-emerald-50/70 font-semibold" : "table-row";
+          tr.innerHTML = `
+            <td class="py-2.5 px-3 text-center font-bold">${r.hr} ${i === 0 ? '🔥' : ''}</td>
+            <td class="py-2.5 px-3 text-center">${r.count} video</td>
+            <td class="py-2.5 px-3 text-right">${formatCellMetric(r.sum)}</td>
+            <td class="py-2.5 px-3 text-right font-extrabold text-[#1877F2]">${formatCellMetric(r.avg)}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+        return;
+      }
+
+      thead.innerHTML = `
+        <tr>
+          <th class="py-3 px-3 text-center w-16">Hạng</th>
+          <th class="py-3 px-3 text-center w-40">Ngày đăng</th>
+          <th class="py-3 px-3">Nội dung video</th>
+          <th class="py-3 px-3 text-right w-32">Views</th>
+          <th class="py-3 px-3 text-right w-28">Likes</th>
+          <th class="py-3 px-3 text-right w-28">Comments</th>
+          <th class="py-3 px-3 text-center w-36">Tỷ lệ tương tác</th>
+        </tr>
+      `;
+
+      let list = [...videos];
+      if (cat === "24h") list = list.filter(v => v.daysAgo <= 1);
+      list.sort((a, b) => {
+        if (cat === "engagement") {
+          const ea = a.views ? ((a.likes || 0) + (a.comments || 0) + (a.shares || 0)) / a.views : -1;
+          const eb = b.views ? ((b.likes || 0) + (b.comments || 0) + (b.shares || 0)) / b.views : -1;
+          return eb - ea;
+        }
+        return (b.views ?? -1) - (a.views ?? -1);
+      });
+
+      const limit = cat === "top10" ? 10 : 20;
+      list = list.slice(0, limit);
+
+      list.forEach((v, idx) => {
+        const inter = (v.likes || 0) + (v.comments || 0) + (v.shares || 0);
+        const er = v.views ? ((inter / v.views) * 100).toFixed(2) + "%" : "Không có dữ liệu";
+        const tr = document.createElement("tr");
+        tr.className = "table-row";
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 text-center font-extrabold text-[#1877F2]">#${idx + 1}</td>
+          <td class="py-2.5 px-3 text-center">${v.date}</td>
+          <td class="py-2.5 px-3 font-semibold">${v.title}</td>
+          <td class="py-2.5 px-3 text-right font-extrabold">${formatCellMetric(v.views)}</td>
+          <td class="py-2.5 px-3 text-right">${formatCellMetric(v.likes)}</td>
+          <td class="py-2.5 px-3 text-right">${formatCellMetric(v.comments)}</td>
+          <td class="py-2.5 px-3 text-center font-bold text-emerald-700">${er}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Quét dữ liệu Fanpage (Ưu tiên gọi Meta Graph API hoặc Serverless /api/scan trên Vercel)
+    async function executeFanpageScan() {
+      const rawUrl = document.getElementById("inputFanpageUrl").value.trim();
+      if (!rawUrl) {
+        showToast("⚠️ Vui lòng dán đường link Fanpage Facebook cần kiểm tra!");
+        return;
+      }
+
+      const pageKey = extractPageKey(rawUrl);
+      activePageKey = pageKey;
+
+      const bar = document.getElementById("scanProgressBar");
+      const barTxt = document.getElementById("scanProgressText");
+      const statusEl = document.getElementById("scanStatusMessage");
+
+      bar.style.width = "35%";
+      barTxt.textContent = "Đang kết nối...";
+      statusEl.textContent = `🔄 Đang kiểm tra dữ liệu video của Fanpage "${pageKey}"...`;
+
+      // 1. Nếu có Meta Graph API Token -> Gọi trực tiếp Graph API từ trình duyệt
+      if (apiToken) {
+        try {
+          const graphUrl = `https://graph.facebook.com/v19.0/${encodeURIComponent(pageKey)}/videos?fields=id,title,description,created_time,permalink_url,views,likes.summary(true),comments.summary(true)&limit=${maxVideosLimit}&access_token=${encodeURIComponent(apiToken)}`;
+          const resp = await fetch(graphUrl);
+          const data = await resp.json();
+          if (data && Array.isArray(data.data)) {
+            pageDatabase[pageKey] = data.data.map(it => {
+              const dtStr = it.created_time ? it.created_time.slice(0, 16).replace("T", " ") : "Không có dữ liệu";
+              const hr = dtStr.length >= 13 ? `${dtStr.slice(11, 13)}:00 - ${dtStr.slice(11, 13)}:59` : "00:00 - 00:59";
+              const ts = it.created_time ? Math.floor(new Date(it.created_time).getTime() / 1000) : 0;
+              const daysAgo = ts ? Math.max(0, Math.round((Date.now() / 1000 - ts) / 86400)) : 0;
+              const title = [it.title, it.description].filter(Boolean).join(" - ") || "Không có mô tả";
+              const permalink = it.permalink_url
+                ? (it.permalink_url.startsWith("http") ? it.permalink_url : `https://www.facebook.com${it.permalink_url}`)
+                : `https://www.facebook.com/${pageKey}/videos/${it.id}`;
+              return {
+                id: String(it.id),
+                date: dtStr,
+                timestamp: ts,
+                daysAgo,
+                hourRange: hr,
+                title,
+                views: it.views ?? null,
+                likes: it.likes?.summary?.total_count ?? null,
+                comments: it.comments?.summary?.total_count ?? null,
+                shares: null,
+                url: permalink
+              };
+            });
+            saveToLocalStorage();
+            bar.style.width = "100%";
+            barTxt.textContent = "Hoàn tất (100%)";
+            statusEl.textContent = `✅ Đã thu thập thành công ${pageDatabase[pageKey].length} video thực tế của Fanpage "${pageKey}" qua Meta Graph API.`;
+            renderMainTableAndOverview();
+            renderRankingView();
+            showToast(`✅ Đã tải ${pageDatabase[pageKey].length} video của Fanpage ${pageKey}!`);
+            return;
+          }
+        } catch (e) {}
+      }
+
+      // 2. Thử gọi Vercel Serverless API (/api/scan) nếu Web App đang chạy trên Vercel
+      try {
+        const apiResp = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent("https://www.facebook.com/" + pageKey + "/videos")}`);
+        if (apiResp.ok) {
+          const payload = await apiResp.json();
+          const html = payload.contents || "";
+          const regex = /\/(?:videos|reel)\/(\d{8,22})/g;
+          const foundIds = [];
+          let m;
+          while ((m = regex.exec(html)) !== null) {
+            if (!foundIds.includes(m[1])) foundIds.push(m[1]);
+            if (foundIds.length >= maxVideosLimit) break;
+          }
+          if (foundIds.length > 0) {
+            pageDatabase[pageKey] = foundIds.map((vid, index) => ({
+              id: vid,
+              date: "Không có dữ liệu",
+              timestamp: Math.floor(Date.now() / 1000) - index * 3600,
+              daysAgo: 0,
+              hourRange: "00:00 - 00:59",
+              title: `Video #${vid} trên Fanpage ${pageKey}`,
+              views: null,
+              likes: null,
+              comments: null,
+              shares: null,
+              url: `https://www.facebook.com/${pageKey}/videos/${vid}`
+            }));
+            saveToLocalStorage();
+            bar.style.width = "100%";
+            barTxt.textContent = "Hoàn tất (100%)";
+            statusEl.textContent = `✅ Đã tìm thấy ${foundIds.length} video công khai trên Fanpage "${pageKey}".`;
+            renderMainTableAndOverview();
+            renderRankingView();
+            showToast(`✅ Đã tìm thấy ${foundIds.length} video công khai!`);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // 3. Nếu Fanpage đã có dữ liệu lưu trước đó
+      if (pageDatabase[pageKey] && pageDatabase[pageKey].length > 0) {
+        bar.style.width = "100%";
+        barTxt.textContent = "Hoàn tất (100%)";
+        statusEl.textContent = `✅ Đang hiển thị ${pageDatabase[pageKey].length} video của Fanpage "${pageKey}".`;
+      } else {
+        bar.style.width = "100%";
+        barTxt.textContent = "Cần Token / API";
+        statusEl.textContent = `ℹ️ Facebook yêu cầu Graph API Token để đọc số liệu của Fanpage "${pageKey}" trực tiếp trên trình duyệt.`;
+        showToast("Hãy nhập Graph API Token trong nút '🔐 Cấu hình Token' hoặc nạp dữ liệu nhanh!");
+      }
+
+      renderMainTableAndOverview();
+      renderRankingView();
+    }
+
+    // Xuất file Excel (.xlsx) chuẩn bằng SheetJS
+    function exportToExcelFile() {
+      const list = getFilteredAndSortedVideos();
+      if (!list.length) {
+        showToast("⚠️ Chưa có dữ liệu video trong bảng để xuất Excel!");
+        return;
+      }
+      const dataRows = list.map((v, i) => ({
+        "STT": i + 1,
+        "Ngày đăng": v.date,
+        "Nội dung video": v.title,
+        "Views": v.views !== null && v.views !== undefined ? v.views : "Không có dữ liệu",
+        "Likes": v.likes !== null && v.likes !== undefined ? v.likes : "Không có dữ liệu",
+        "Comments": v.comments !== null && v.comments !== undefined ? v.comments : "Không có dữ liệu",
+        "Shares": v.shares !== null && v.shares !== undefined ? v.shares : "Không có dữ liệu",
+        "Link video": v.url
+      }));
+
+      if (typeof XLSX !== "undefined") {
+        const ws = XLSX.utils.json_to_sheet(dataRows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "ThongKeVideo");
+        XLSX.writeFile(wb, `Facebook_Analytics_${activePageKey || "Fanpage"}.xlsx`);
+        showToast("📥 Đã tải xuống file Excel (.xlsx) thành công!");
+      } else {
+        exportToCsvFile();
+      }
+    }
+
+    function exportToCsvFile() {
+      const list = getFilteredAndSortedVideos();
+      if (!list.length) {
+        showToast("⚠️ Chưa có dữ liệu video trong bảng để xuất CSV!");
+        return;
+      }
+      const rows = [["STT", "Ngày đăng", "Nội dung video", "Views", "Likes", "Comments", "Shares", "Link video"]];
+      list.forEach((v, i) => {
+        rows.push([
+          i + 1,
+          `"${v.date}"`,
+          `"${(v.title || "").replace(/"/g, '""')}"`,
+          v.views ?? "Không có dữ liệu",
+          v.likes ?? "Không có dữ liệu",
+          v.comments ?? "Không có dữ liệu",
+          v.shares ?? "Không có dữ liệu",
+          v.url
+        ]);
+      });
+      const blob = new Blob(["\uFEFF" + rows.map(r => r.join(",")).join("\n")], { type: "text/csv;charset=utf-8;" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `Facebook_Analytics_${activePageKey || "Fanpage"}.csv`;
+      a.click();
+      showToast("📄 Đã tải xuống file CSV thành công!");
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      loadFromLocalStorage();
+
+      // Chuyển đổi Tab Bảng thống kê / Bảng xếp hạng
+      document.querySelectorAll(".view-tab-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".view-tab-btn").forEach(b => {
+            b.className = "view-tab-btn bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs sm:text-sm font-bold px-4 py-2.5 rounded-t-xl transition";
+          });
+          btn.className = "view-tab-btn bg-[#1877F2] text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-t-xl transition";
+          document.querySelectorAll(".view-panel").forEach(p => p.classList.add("hidden"));
+          document.getElementById(btn.getAttribute("data-view")).classList.remove("hidden");
+        });
+      });
+
+      // Tự động lọc riêng theo Fanpage đang nhập ở ô input
+      document.getElementById("inputFanpageUrl").addEventListener("input", (e) => {
+        activePageKey = extractPageKey(e.target.value);
+        renderMainTableAndOverview();
+        renderRankingView();
+      });
+
+      document.getElementById("btnCheckFanpage").addEventListener("click", executeFanpageScan);
+      document.getElementById("btnUpdateNewVideos").addEventListener("click", executeFanpageScan);
+      document.getElementById("btnPauseResume").addEventListener("click", () => {
+        isPaused = !isPaused;
+        document.getElementById("btnPauseResume").textContent = isPaused ? "▶ Tiếp tục" : "⏸ Tạm dừng";
+      });
+
+      // Bộ lọc & Sắp xếp
+      document.getElementById("inputSearchVideo").addEventListener("input", renderMainTableAndOverview);
+      document.getElementById("selectPeriodFilter").addEventListener("change", renderMainTableAndOverview);
+      document.getElementById("selectSortOrder").addEventListener("change", renderMainTableAndOverview);
+      document.getElementById("selectRankCategory").addEventListener("change", renderRankingView);
+
+      // Xuất Excel & CSV
+      document.getElementById("btnExportXlsx").addEventListener("click", exportToExcelFile);
+      document.getElementById("btnExportCsv").addEventListener("click", exportToCsvFile);
+
+      // Khôi phục phiên lưu trong LocalStorage
+      document.getElementById("btnRestoreSession").addEventListener("click", () => {
+        const lastPage = localStorage.getItem("fb_fanpage_analytics_last_page");
+        if (lastPage) {
+          activePageKey = lastPage;
+          document.getElementById("inputFanpageUrl").value = "https://www.facebook.com/" + lastPage;
+          renderMainTableAndOverview();
+          renderRankingView();
+          showToast(`Đã mở lại dữ liệu Fanpage fb.com/${lastPage}`);
+        }
+      });
+      document.getElementById("btnClearSession").addEventListener("click", () => {
+        try { localStorage.removeItem("fb_fanpage_analytics_last_page"); } catch (e) {}
+        document.getElementById("savedSessionBanner").classList.add("hidden");
+      });
+
+      // Modal Cấu hình
+      const settingsModal = document.getElementById("settingsModal");
+      const closeSettings = () => { settingsModal.classList.add("hidden"); settingsModal.classList.remove("flex"); };
+      document.getElementById("btnOpenSettingsModal").addEventListener("click", () => {
+        settingsModal.classList.remove("hidden");
+        settingsModal.classList.add("flex");
+      });
+      document.getElementById("btnCloseSettingsModal").addEventListener("click", closeSettings);
+      document.getElementById("btnCancelSettings").addEventListener("click", closeSettings);
+      document.getElementById("btnSaveSettings").addEventListener("click", () => {
+        apiToken = document.getElementById("inputApiToken").value.trim();
+        maxVideosLimit = Number(document.getElementById("selectMaxVideos").value) || 50;
+        try { localStorage.setItem("fb_fanpage_analytics_token", apiToken); } catch (e) {}
+        closeSettings();
+        showToast("✅ Đã lưu cấu hình kết nối!");
+      });
+
+      // Modal Nhập nhanh dữ liệu
+      const importModal = document.getElementById("importModal");
+      const closeImport = () => { importModal.classList.add("hidden"); importModal.classList.remove("flex"); };
+      document.getElementById("btnAddManualVideo").addEventListener("click", () => {
+        importModal.classList.remove("hidden");
+        importModal.classList.add("flex");
+      });
+      document.getElementById("btnCloseImportModal").addEventListener("click", closeImport);
+      document.getElementById("btnCancelImport").addEventListener("click", closeImport);
+      document.getElementById("btnConfirmImport").addEventListener("click", () => {
+        const raw = document.getElementById("textareaImportData").value.trim();
+        if (!raw) { closeImport(); return; }
+        if (!activePageKey) activePageKey = "fanpage_custom";
+        if (!pageDatabase[activePageKey]) pageDatabase[activePageKey] = [];
+
+        const lines = raw.split("\n").map(l => l.trim()).filter(Boolean);
+        lines.forEach((line, idx) => {
+          const parts = line.split("|").map(p => p.trim());
+          if (parts.length >= 2) {
+            const dt = parts[0] || "Không có dữ liệu";
+            const hr = dt.length >= 13 ? `${dt.slice(11, 13)}:00 - ${dt.slice(11, 13)}:59` : "20:00 - 20:59";
+            pageDatabase[activePageKey].unshift({
+              id: "imp_" + Date.now() + "_" + idx,
+              date: dt,
+              timestamp: Math.floor(Date.now() / 1000),
+              daysAgo: 0,
+              hourRange: hr,
+              title: parts[1] || "Không có mô tả",
+              views: parts[2] && !isNaN(Number(parts[2])) ? Number(parts[2]) : null,
+              likes: parts[3] && !isNaN(Number(parts[3])) ? Number(parts[3]) : null,
+              comments: parts[4] && !isNaN(Number(parts[4])) ? Number(parts[4]) : null,
+              shares: parts[5] && !isNaN(Number(parts[5])) ? Number(parts[5]) : null,
+              url: parts[6] || `https://www.facebook.com/${activePageKey}`
+            });
+          }
+        });
+        saveToLocalStorage();
+        closeImport();
+        renderMainTableAndOverview();
+        renderRankingView();
+        showToast(`✅ Đã nạp thêm ${lines.length} video vào Fanpage ${activePageKey}!`);
+      });
+
+      // Modal Hướng dẫn Vercel
+      const guideModal = document.getElementById("guideModal");
+      const closeGuide = () => { guideModal.classList.add("hidden"); guideModal.classList.remove("flex"); };
+      document.getElementById("btnOpenGuideModal").addEventListener("click", () => {
+        guideModal.classList.remove("hidden");
+        guideModal.classList.add("flex");
+      });
+      document.getElementById("btnCloseGuideModal").addEventListener("click", closeGuide);
+      document.getElementById("btnOkGuide").addEventListener("click", closeGuide);
+
+      renderMainTableAndOverview();
+      renderRankingView();
+    });
+  </script>
+</body>
+</html>
